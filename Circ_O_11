@@ -1,0 +1,48 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import scienceplots
+from scipy.integrate import tplquad
+plt.style.use (['science', 'notebook', 'grid'])
+from numba import njit 
+
+G = 6.6743 * (10**-11)
+# distance = np.geomspace(0.1,1000,1000). Commented out because distance needs to be a constant that is stated within args in tplquad.
+
+@njit
+def bulge(r,phi,theta,distance):
+  pc = 920100000
+  dn = 7.769
+  ac = 1.155
+  q = .72
+  N = 2.7
+  a = r*np.sqrt((np.sin(phi))**2 + (((np.cos(phi))**2) / (q**2)))
+  b = (1/N)
+  c = (a/ac)**b -1
+  numer =r*np.sin(phi)*np.cos(theta) # Reduced the 3 element array to one to try to get anywhere (would run two more functions with the 2nd and 3rd element of the vector and add them together at the end). Still will not run with distance being a number range.
+  sinexphi = (np.sin(phi))**2
+  cosextheta = (np.cos(theta))**2
+  cosexphi = (np.cos(phi))**2
+  rsqare = r**2
+  middle_exp = r*np.sin(phi)*np.sin(theta) - distance
+  denom = (np.sqrt(rsqare*sinexphi*cosextheta + (middle_exp)**2 + rsqare*cosexphi))**3
+
+  return (numer/denom)*(G*np.sin(phi)*(r**2)*pc*np.exp(-dn*(c)))
+
+result_bulge = np.zeros(1000)
+error_bulge = np.zeros(1000)
+
+# for i in enumerate(distance): #Not exactly sure what to loop here since distance is not longer a variable
+inner_lower_limit = 0
+inner_upper_limit = 10**3
+
+middle_lower_limit = 0
+middle_upper_limit = np.pi
+
+outer_lower_limit = 0
+outer_upper_limit = 2*np.pi
+
+result_bulge, error_bulge = tplquad(bulge, inner_lower_limit, inner_upper_limit, lambda x: middle_lower_limit, lambda x: middle_upper_limit, lambda x, y: outer_lower_limit, lambda x, y: outer_upper_limit, args=(np.arange(0.1,1000,1000),)) # np.arrange will not work, args only accepts constant arguments.
+
+print(result_bulge)
+
+# I know I need to loop the tplquad over 'distance' ranging from 0 to 10**3, but tplquad will only integrate pure scalars, not ranges/arrays/ etc.
